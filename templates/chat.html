@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+</head>
+<body>
+    <h1>Welcome, {{ username }}</h1>
+
+    <!-- Room Input -->
+    <label for="roomInput">Enter Room Name:</label>
+    <input type="text" id="roomInput" placeholder="Room Name" required>
+    <button id="joinRoomButton">Join Room</button>
+
+    <!-- Message Form -->
+    <form id="messageForm" style="display:none;">
+        <input type="text" id="messageInput" placeholder="Type your message" required>
+        <button type="submit">Send</button>
+    </form>
+
+    <div id="messages"></div>
+
+    <button id="logoutButton">Logout</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let room = "";  // Initially, no room is selected
+        const username = "{{ username }}";  // Get the username from Flask
+
+        // Join room when user clicks 'Join Room' button
+        document.getElementById('joinRoomButton').addEventListener('click', () => {
+            room = document.getElementById('roomInput').value.trim();  // Get the room name
+            if (room) {
+                socket.emit('join', { username, room });
+                document.getElementById('messageForm').style.display = 'block';  // Show the message form
+                document.getElementById('roomInput').disabled = true;  // Disable room input
+                document.getElementById('joinRoomButton').disabled = true;  // Disable the join button
+            } else {
+                alert('Please enter a room name');
+            }
+        });
+
+        // Handle incoming messages
+        socket.on('message', function(msg) {
+            const messagesDiv = document.getElementById('messages');
+            const newMessage = document.createElement('p');
+            newMessage.textContent = msg;
+            messagesDiv.appendChild(newMessage);
+        });
+
+        // Send message when the form is submitted
+        document.getElementById('messageForm').addEventListener('submit', (e) => {
+            e.preventDefault();  // Prevent the page from refreshing on form submission
+            const message = document.getElementById('messageInput').value;
+            socket.emit('message', { room, message, username });
+            document.getElementById('messageInput').value = '';  // Clear the input field
+        });
+
+        // Handle logout
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            socket.emit('leave', { username, room });
+            window.location.href = '/';  // Redirect to the home page after logout
+        });
+    </script>
+</body>
+</html>
