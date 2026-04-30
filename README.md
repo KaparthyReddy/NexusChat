@@ -21,23 +21,23 @@
 
 ## 🚀 Quick Start
 1. **Clone & Enter:**
-   \`\`\`bash
+   ```bash
    git clone https://github.com/KaparthyReddy/NexusChat.git
    cd NexusChat
-   \`\`\`
+   
 
 2. **Initialize Environment:**
-   \`\`\`bash
+   ```bash
    python3 -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
-   \`\`\`
+   
 
 3. **Launch the Engine:**
-   \`\`\`bash
+   ```bash
    python3 app.py
-   \`\`\`
-   Access the interface at \`http://localhost:8080\`.
+   
+4. Access the interface at \`http://localhost:8080\`.
 
 ## 📜 Roadmap
 - [x] Multi-room Support
