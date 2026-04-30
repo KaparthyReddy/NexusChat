@@ -1,25 +1,25 @@
 import os
+import sys
+
+# FORCE PORT 8080 into the environment before Flask even wakes up
+os.environ['FLASK_RUN_PORT'] = '8080'
+
 from flask import Flask, render_template, request, session, redirect, url_for
 from flask_socketio import SocketIO, join_room, leave_room, send
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 
-# 1. Load environment variables
+# Load .env variables
 load_dotenv()
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'nexus_secret_99')
 
-# 2. Security: Use .env key with a fallback
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev_default_key_12345')
+# Switch to 'gevent' mode - it's much more stable on macOS than eventlet
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
-# 3. Initialize SocketIO 
-# cors_allowed_origins="*" ensures no 'Access Denied' due to cross-origin issues
-socketio = SocketIO(app, cors_allowed_origins="*")
-
-# 4. In-memory user database
+# In-memory user database
 users = {}
-
-# --- Routes ---
 
 @app.route('/')
 def home():
@@ -32,20 +32,15 @@ def login():
         password = request.form['password']
 
         if username in users:
-            # Authenticate
             if check_password_hash(users[username]['password'], password):
                 session['username'] = username
                 return redirect(url_for('chat'))
             else:
                 return "Invalid password", 401
         else:
-            # Register new user
-            users[username] = {
-                'password': generate_password_hash(password),
-            }
+            users[username] = {'password': generate_password_hash(password)}
             session['username'] = username
             return redirect(url_for('chat'))
-
     return render_template('login.html')
 
 @app.route('/chat')
@@ -54,14 +49,13 @@ def chat():
         return redirect(url_for('login'))
     return render_template('chat.html', username=session['username'])
 
-# --- Socket.io Event Handlers ---
+# --- Real-Time Handlers ---
 
 @socketio.on('join')
 def on_join(data):
     username = data.get('username')
     room = data.get('room', 'General')
     join_room(room)
-    # System message broadcast
     send(f"{username} has joined the room: {room}", to=room)
 
 @socketio.on('leave')
@@ -76,10 +70,12 @@ def handle_message(data):
     room = data.get('room', 'General')
     message = data.get('message')
     username = data.get('username')
-    # Broadcast to everyone in that specific room
     send(f"{username}: {message}", to=room)
 
-# --- Execution ---
-
 if __name__ == '__main__':
-    socketio.run(app, host='127.0.0.1', port=8080, debug=True)
+    print("\n" + "="*40)
+    print(" NEXUSCHAT BOOTING ON PORT 8080 ")
+    print("="*40 + "\n")
+    
+    # We use use_reloader=False to prevent the Mac double-start bug
+    socketio.run(app, host='127.0.0.1', port=8080, debug=True, use_reloader=False)
