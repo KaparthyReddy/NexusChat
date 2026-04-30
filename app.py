@@ -4,18 +4,22 @@ from flask_socketio import SocketIO, join_room, leave_room, send
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# 1. Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 
+# 2. Security: Use .env key with a fallback
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev_default_key_12345')
 
-# Initialize SocketIO with eventlet for better concurrency
+# 3. Initialize SocketIO 
+# cors_allowed_origins="*" ensures no 'Access Denied' due to cross-origin issues
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# In-memory user database (resets on server restart)
+# 4. In-memory user database
 users = {}
+
+# --- Routes ---
 
 @app.route('/')
 def home():
@@ -28,14 +32,14 @@ def login():
         password = request.form['password']
 
         if username in users:
-            # Authenticate existing user
+            # Authenticate
             if check_password_hash(users[username]['password'], password):
                 session['username'] = username
                 return redirect(url_for('chat'))
             else:
                 return "Invalid password", 401
         else:
-            # Register new user automatically
+            # Register new user
             users[username] = {
                 'password': generate_password_hash(password),
             }
@@ -57,6 +61,7 @@ def on_join(data):
     username = data.get('username')
     room = data.get('room', 'General')
     join_room(room)
+    # System message broadcast
     send(f"{username} has joined the room: {room}", to=room)
 
 @socketio.on('leave')
@@ -71,8 +76,18 @@ def handle_message(data):
     room = data.get('room', 'General')
     message = data.get('message')
     username = data.get('username')
-    # Broadcast message to everyone in the room
+    # Broadcast to everyone in that specific room
     send(f"{username}: {message}", to=room)
 
+# --- Execution ---
+
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=8080)
+    # port=8080 avoids the AirPlay conflict on Port 5000
+    # use_reloader=False prevents the double-start issue on macOS
+    socketio.run(
+        app, 
+        host='0.0.0.0', 
+        port=8080, 
+        debug=True, 
+        use_reloader=False
+    )
