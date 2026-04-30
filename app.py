@@ -72,8 +72,4 @@ def handle_message(data):
     send(f"{username}: {message}", to=room)
 
 if __name__ == '__main__':
-    print("\n" + "="*40)
-    print(" NEXUSCHAT BOOTING ON PORT 8080 ")
-    print("="*40 + "\n")
-   
-    socketio.run(app, host='127.0.0.1', port=8080, debug=True, use_reloader=False)
+    socketio.run(app, host='127.0.0.1', port=8080, debug=False, use_reloader=False)
