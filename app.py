@@ -1,7 +1,6 @@
 import os
 import sys
 
-# FORCE PORT 8080 into the environment before Flask even wakes up
 os.environ['FLASK_RUN_PORT'] = '8080'
 
 from flask import Flask, render_template, request, session, redirect, url_for
@@ -76,6 +75,5 @@ if __name__ == '__main__':
     print("\n" + "="*40)
     print(" NEXUSCHAT BOOTING ON PORT 8080 ")
     print("="*40 + "\n")
-    
-    # We use use_reloader=False to prevent the Mac double-start bug
+   
     socketio.run(app, host='127.0.0.1', port=8080, debug=True, use_reloader=False)
