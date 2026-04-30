@@ -75,5 +75,4 @@ def handle_message(data):
     send(f"{username}: {message}", to=room)
 
 if __name__ == '__main__':
-    # Use socketio.run instead of app.run to enable WebSocket support
-    socketio.run(app, debug=True, port=5000)
+    socketio.run(app, debug=True, port=5001)
