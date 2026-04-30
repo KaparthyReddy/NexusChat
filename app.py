@@ -82,12 +82,4 @@ def handle_message(data):
 # --- Execution ---
 
 if __name__ == '__main__':
-    # port=8080 avoids the AirPlay conflict on Port 5000
-    # use_reloader=False prevents the double-start issue on macOS
-    socketio.run(
-        app, 
-        host='0.0.0.0', 
-        port=8080, 
-        debug=True, 
-        use_reloader=False
-    )
+    socketio.run(app, host='127.0.0.1', port=8080, debug=True)
