@@ -3,18 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>NexusChat | Real-Time Messaging</title>
+    <style>
+        :root { --bg: #0f1113; --accent: #007bff; --text: #ffffff; }
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: radial-gradient(circle at top right, #1e2227, var(--bg));
+            color: var(--text); 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            overflow: hidden;
+        }
+        .hero { text-align: center; z-index: 2; }
+        .hero h1 { 
+            font-size: 64px; 
+            margin: 0; 
+            background: linear-gradient(to bottom, #fff, #666);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -2px;
+        }
+        .hero p { color: #888; font-size: 18px; margin-top: 10px; max-width: 500px; }
+        .cta-container { margin-top: 40px; }
+        .btn-launch { 
+            padding: 15px 40px; 
+            background: var(--accent); 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 50px; 
+            font-weight: 600; 
+            font-size: 18px;
+            box-shadow: 0 0 20px rgba(0, 123, 255, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-block;
+        }
+        .btn-launch:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 0 30px rgba(0, 123, 255, 0.6); 
+        }
+        /* Decorative background glow */
+        .glow {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: var(--accent);
+            filter: blur(150px);
+            opacity: 0.1;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+    </style>
 </head>
 <body>
-    <h1>Login</h1>
-    <form action="/login" method="POST">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required>
-        <br>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
-        <br>
-        <button type="submit">Login</button>
-    </form>
+    <div class="glow"></div>
+    <div class="hero">
+        <h1>NexusChat</h1>
+        <p>Synchronized messaging for modern workflows. Secure, ephemeral, and incredibly fast.</p>
+        <div class="cta-container">
+            <a href="/login" class="btn-launch">Launch Nexus</a>
+        </div>
+    </div>
 </body>
 </html>

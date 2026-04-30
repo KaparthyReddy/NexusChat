@@ -3,65 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Room</title>
+    <title>NexusChat - Stream</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        :root { --bg: #121417; --panel-bg: #1e2227; --text: #f4f7f6; --accent: #007bff; --border: #333; --msg-others: #2a2e33; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        #app-header { background: var(--panel-bg); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); z-index: 10; }
+        #app-header h1 { margin: 0; font-size: 20px; font-weight: 500; color: #aaa; }
+        #app-header b { color: var(--text); font-weight: 700; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        
+        #room-controls { display: flex; gap: 8px; }
+        input[type="text"] { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 4px; color: var(--text); padding: 8px 12px; outline: none; }
+        input:focus { border-color: var(--accent); }
+        .btn { padding: 8px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.8; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-danger { background: #dc3545; color: white; text-decoration: none; font-size: 14px; }
+
+        #chat-main { flex: 1; display: flex; flex-direction: column; width: 100%; max-width: 1000px; margin: 0 auto; background: var(--panel-bg); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+        
+        #messages { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        #messages p { margin: 0; padding: 12px 18px; border-radius: 8px; max-width: 75%; font-size: 15px; line-height: 1.4; }
+        .msg-other { background: var(--msg-others); align-self: flex-start; border-bottom-left-radius: 2px; }
+        .msg-self { background: var(--accent); align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg-system { background: transparent; color: #888; align-self: center; font-style: italic; font-size: 13px; text-align: center; max-width: 100%; padding: 5px; }
+
+        #messageForm { padding: 20px; background: var(--panel-bg); border-top: 1px solid var(--border); display: flex; gap: 10px; position: sticky; bottom: 0; }
+        #messageInput { flex: 1; padding: 12px; font-size: 15px; }
+
+        /* Initial Hide state */
+        #messages, #messageForm, #logoutButton { display: none; }
+    </style>
 </head>
 <body>
-    <h1>Welcome, {{ username }}</h1>
+    <header id="app-header">
+        <h1>Nexus Stream / Identity: <b>{{ username }}</b></h1>
+        <div class="controls">
+            <div id="room-controls">
+                <input type="text" id="roomInput" placeholder="Room ID (e.g., Lounge)" required>
+                <button class="btn btn-accent" id="joinRoomButton">Join Room</button>
+            </div>
+            <a href="/" class="btn btn-danger" id="logoutButton">Logout</a>
+        </div>
+    </header>
 
-    <!-- Room Input -->
-    <label for="roomInput">Enter Room Name:</label>
-    <input type="text" id="roomInput" placeholder="Room Name" required>
-    <button id="joinRoomButton">Join Room</button>
+    <main id="chat-main">
+        <div id="messages">
+            </div>
 
-    <!-- Message Form -->
-    <form id="messageForm" style="display:none;">
-        <input type="text" id="messageInput" placeholder="Type your message" required>
-        <button type="submit">Send</button>
-    </form>
+        <form id="messageForm">
+            <input type="text" id="messageInput" placeholder="Secure message..." required autocomplete="off">
+            <button type="submit" class="btn btn-accent">Send</button>
+        </form>
+    </main>
 
-    <div id="messages"></div>
-
-    <button id="logoutButton">Logout</button>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
     <script>
         const socket = io();
-        let room = "";  // Initially, no room is selected
-        const username = "{{ username }}";  // Get the username from Flask
+        let room = "";  
+        const username = "{{ username }}"; 
 
-        // Join room when user clicks 'Join Room' button
-        document.getElementById('joinRoomButton').addEventListener('click', () => {
-            room = document.getElementById('roomInput').value.trim();  // Get the room name
+        const messagesDiv = document.getElementById('messages');
+        const msgForm = document.getElementById('messageForm');
+        const roomInput = document.getElementById('roomInput');
+        const joinBtn = document.getElementById('joinRoomButton');
+        const logoutBtn = document.getElementById('logoutButton');
+
+        // Utility to render different message types
+        const addMessage = (msg, type='other') => {
+            const newMessage = document.createElement('p');
+            newMessage.textContent = msg;
+            
+            if (type === 'self') newMessage.classList.add('msg-self');
+            else if (type === 'system') newMessage.classList.add('msg-system');
+            else newMessage.classList.add('msg-other');
+
+            messagesDiv.appendChild(newMessage);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll
+        };
+
+        // Join room logic
+        joinBtn.addEventListener('click', () => {
+            room = roomInput.value.trim();
             if (room) {
                 socket.emit('join', { username, room });
-                document.getElementById('messageForm').style.display = 'block';  // Show the message form
-                document.getElementById('roomInput').disabled = true;  // Disable room input
-                document.getElementById('joinRoomButton').disabled = true;  // Disable the join button
+                // Update UI state
+                document.getElementById('room-controls').style.display = 'none'; // Hide room entry
+                logoutBtn.style.display = 'block'; // Show logout
+                messagesDiv.style.display = 'flex'; // Show message area
+                msgForm.style.display = 'flex'; // Show input area
+                roomInput.disabled = true;
+                joinBtn.disabled = true;
             } else {
-                alert('Please enter a room name');
+                alert('Connection Error: Destination Room ID required.');
             }
         });
 
         // Handle incoming messages
         socket.on('message', function(msg) {
-            const messagesDiv = document.getElementById('messages');
-            const newMessage = document.createElement('p');
-            newMessage.textContent = msg;
-            messagesDiv.appendChild(newMessage);
+            // Check if it's a system message (user joined/left)
+            if (msg.includes('joined the room') || msg.includes('has left the room')) {
+                addMessage(msg, 'system');
+            } else if (msg.startsWith(username + ":")) {
+                // If the message starts with our username, style it as self
+                addMessage(msg, 'self');
+            } else {
+                addMessage(msg, 'other');
+            }
         });
 
-        // Send message when the form is submitted
-        document.getElementById('messageForm').addEventListener('submit', (e) => {
-            e.preventDefault();  // Prevent the page from refreshing on form submission
+        // Send message logic
+        msgForm.addEventListener('submit', (e) => {
+            e.preventDefault(); 
             const message = document.getElementById('messageInput').value;
-            socket.emit('message', { room, message, username });
-            document.getElementById('messageInput').value = '';  // Clear the input field
+            if(message.trim()){
+                socket.emit('message', { room, message, username });
+                document.getElementById('messageInput').value = ''; 
+            }
         });
 
         // Handle logout
-        document.getElementById('logoutButton').addEventListener('click', () => {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
             socket.emit('leave', { username, room });
-            window.location.href = '/';  // Redirect to the home page after logout
+            window.location.href = '/'; // Simple session destruction
         });
     </script>
 </body>
