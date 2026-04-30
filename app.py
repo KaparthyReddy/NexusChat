@@ -1,21 +1,26 @@
+import os
 from flask import Flask, render_template, request, session, redirect, url_for
 from flask_socketio import SocketIO, join_room, leave_room, send
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'  # Replace with a secret key of your choice
-socketio = SocketIO(app)
 
-# In-memory user database for simplicity (use SQLite or PostgreSQL in production)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev_default_key_12345')
+
+# Initialize SocketIO with eventlet for better concurrency
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# In-memory user database (resets on server restart)
 users = {}
 
-# Route for the home page
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# Route for user login/registration
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -23,14 +28,14 @@ def login():
         password = request.form['password']
 
         if username in users:
-            # Authenticate user
+            # Authenticate existing user
             if check_password_hash(users[username]['password'], password):
                 session['username'] = username
                 return redirect(url_for('chat'))
             else:
-                return "Invalid password"
+                return "Invalid password", 401
         else:
-            # Register user
+            # Register new user automatically
             users[username] = {
                 'password': generate_password_hash(password),
             }
@@ -39,36 +44,36 @@ def login():
 
     return render_template('login.html')
 
-# Route for chat page
 @app.route('/chat')
 def chat():
     if 'username' not in session:
         return redirect(url_for('login'))
     return render_template('chat.html', username=session['username'])
 
-# Handle joining a chat room
+# --- Socket.io Event Handlers ---
+
 @socketio.on('join')
 def on_join(data):
-    username = data['username']
-    room = data['room']
+    username = data.get('username')
+    room = data.get('room', 'General')
     join_room(room)
-    send(f"{username} has joined the room.", to=room)
+    send(f"{username} has joined the room: {room}", to=room)
 
-# Handle leaving a chat room
 @socketio.on('leave')
 def on_leave(data):
-    username = data['username']
-    room = data['room']
+    username = data.get('username')
+    room = data.get('room', 'General')
     leave_room(room)
     send(f"{username} has left the room.", to=room)
 
-# Handle sending a message
 @socketio.on('message')
 def handle_message(data):
-    room = data['room']
-    message = data['message']
-    username = data['username']
+    room = data.get('room', 'General')
+    message = data.get('message')
+    username = data.get('username')
+    # Broadcast message to everyone in the room
     send(f"{username}: {message}", to=room)
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    # Use socketio.run instead of app.run to enable WebSocket support
+    socketio.run(app, debug=True, port=5000)
