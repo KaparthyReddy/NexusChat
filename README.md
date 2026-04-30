@@ -37,7 +37,7 @@
    ```bash
    python3 app.py
    
-4. Access the interface at \`http://localhost:8080\`.
+4. Access the interface at \`http://localhost:8080`\.
 
 ## 📜 Roadmap
 - [x] Multi-room Support
